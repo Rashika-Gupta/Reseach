@@ -1,0 +1,6 @@
+#
+/control/saveHistory
+
+#
+/random/setSeeds 126 126
+/run/beamOn 200

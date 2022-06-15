@@ -1,0 +1,567 @@
+#include "UCNBSteppingAction.hh"
+#include "UCNBEventAction.hh"
+#include "UCNBAnalysisManager.hh"
+#include "G4SteppingManager.hh"
+#include "G4ios.hh"
+#include "G4Track.hh"
+#include "globals.hh"
+#include "G4ParticleDefinition.hh"
+#include "G4DynamicParticle.hh"
+#include "G4Step.hh"
+#include "G4Track.hh"
+#include "TStopwatch.h"
+#include "TMath.h"
+#include "G4EventManager.hh"
+#include "G4SystemOfUnits.hh"
+//----------------------------------------------------------------------------
+UCNBSteppingAction::UCNBSteppingAction()
+{
+}
+//----------------------------------------------------------------------------
+void UCNBSteppingAction::UserSteppingAction(const G4Step* fStep)
+{
+  G4Track* fTrack = fStep->GetTrack();
+  G4double eventTimeSoFar = ((UCNBEventAction*)G4EventManager::GetEventManager()->GetUserEventAction())->getEventCPUTime();
+ // G4cout<<"Line 25 Stepping action **********************************"<<G4endl;
+  if(eventTimeSoFar > 40.) {
+    G4int iFlag = 1;
+    UCNBAnalysisManager::getInstance()->killEventFlag(iFlag);
+    fTrack->SetTrackStatus(fStopAndKill);
+  }
+#define COLLECT
+#ifdef COLLECT
+
+  // Determine proton total time-of-flight and hit positions in Silicon detectors/DeadLayers
+  ///////////////////////////////////////////////////////////////////////////////////////////
+  if ( ((fStep->GetTrack()->GetTrackID() == 2)) )
+  {
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle = dynParticle -> GetDefinition();
+    G4String particleName = particle -> GetParticleName();
+    G4double dTstep = fStep->GetDeltaTime();
+    UCNBAnalysisManager::getInstance()->AddUpProtonDriftTime(dTstep/s*1e9);
+
+    if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon1") {
+      G4ThreeVector hitSilicon1 = fStep->GetPreStepPoint()->GetPosition();
+      G4double xhitSilicon1 = hitSilicon1.x()/m;
+      G4double yhitSilicon1 = hitSilicon1.y()/m;
+      G4double zhitSilicon1 = hitSilicon1.z()/m;
+      UCNBAnalysisManager::getInstance()->recordSilicon1pPosition(xhitSilicon1,yhitSilicon1,zhitSilicon1);
+    }
+
+    if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon2") {
+      G4ThreeVector hitSilicon2 = fStep->GetPreStepPoint()->GetPosition();
+      G4double xhitSilicon2 = hitSilicon2.x()/m;
+      G4double yhitSilicon2 = hitSilicon2.y()/m;
+      G4double zhitSilicon2 = hitSilicon2.z()/m;
+      UCNBAnalysisManager::getInstance()->recordSilicon2pPosition(xhitSilicon2,yhitSilicon2,zhitSilicon2);
+    }
+//---------------------------Dead Layer-----------------------------------------////////
+ if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead1") {
+      G4ThreeVector hitSilicon1d = fStep->GetPreStepPoint()->GetPosition();
+      G4double xhitSilicon1 = hitSilicon1d.x()/m;
+      G4double yhitSilicon1 = hitSilicon1d.y()/m;
+      G4double zhitSilicon1 = hitSilicon1d.z()/m;
+      UCNBAnalysisManager::getInstance()->recordDead1pPosition(xhitSilicon1,yhitSilicon1,zhitSilicon1);
+    }
+
+    if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead2") {
+      G4ThreeVector hitSilicon2d = fStep->GetPreStepPoint()->GetPosition();
+      G4double xhitSilicon2 = hitSilicon2d.x()/m;
+      G4double yhitSilicon2 = hitSilicon2d.y()/m;
+      G4double zhitSilicon2 = hitSilicon2d.z()/m;
+      UCNBAnalysisManager::getInstance()->recordDead2pPosition(xhitSilicon2,yhitSilicon2,zhitSilicon2);
+    }
+  }
+  //////////////////////////////////////////////////////////////
+//---------------Electron Position and Time------------------------------------------
+  if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon1")
+  {
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle = dynParticle -> GetDefinition();
+    G4String particleName = particle -> GetParticleName();
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+      G4ThreeVector hitSilicon11 = fStep->GetPreStepPoint()->GetPosition();
+      G4double xhitSilicon1 = hitSilicon11.x()/m;
+      G4double yhitSilicon1 = hitSilicon11.y()/m;
+      G4double zhitSilicon1 = hitSilicon11.z()/m;
+      UCNBAnalysisManager::getInstance()->recordSilicon1ePosition(xhitSilicon1,yhitSilicon1,zhitSilicon1);
+      }
+    }
+
+  if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon2")
+  {
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle = dynParticle -> GetDefinition();
+    G4String particleName = particle -> GetParticleName();
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+      G4ThreeVector hitSilicon22 = fStep->GetPreStepPoint()->GetPosition();
+      G4double xhitSilicon2 = hitSilicon22.x()/m;
+      G4double yhitSilicon2 = hitSilicon22.y()/m;
+      G4double zhitSilicon2 = hitSilicon22.z()/m;
+      UCNBAnalysisManager::getInstance()->recordSilicon2ePosition(xhitSilicon2,yhitSilicon2,zhitSilicon2);
+      }
+    }
+
+  if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead1")
+  {
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle = dynParticle -> GetDefinition();
+    G4String particleName = particle -> GetParticleName();
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+      G4ThreeVector hitSilicon11d = fStep->GetPreStepPoint()->GetPosition();
+      G4double xhitSilicon1 = hitSilicon11d.x()/m;
+      G4double yhitSilicon1 = hitSilicon11d.y()/m;
+      G4double zhitSilicon1 = hitSilicon11d.z()/m;
+      UCNBAnalysisManager::getInstance()->recordDead1ePosition(xhitSilicon1,yhitSilicon1,zhitSilicon1);
+      }
+    }
+
+if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead2")
+  {
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle = dynParticle -> GetDefinition();
+    G4String particleName = particle -> GetParticleName();
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+      G4ThreeVector hitSilicon22d = fStep->GetPreStepPoint()->GetPosition();
+      G4double xhitSilicon2 = hitSilicon22d.x()/m;
+      G4double yhitSilicon2 = hitSilicon22d.y()/m;
+      G4double zhitSilicon2 = hitSilicon22d.z()/m;
+      UCNBAnalysisManager::getInstance()->recordDead2ePosition(xhitSilicon2,yhitSilicon2,zhitSilicon2);
+      }
+    }
+ if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle = dynParticle -> GetDefinition();
+    G4String particleName = particle -> GetParticleName();
+    G4double dTstep = fStep->GetDeltaTime();
+    UCNBAnalysisManager::getInstance()->AddUpElectronDriftTime(dTstep/s*1e9);
+   }
+//----------------------------------------------------------------------------
+  ////////   e- / daughter position tracking ///////////////////
+
+  if(fStep->GetTrack()->GetTrackID()==1){   // It's the primary electron
+  if(fStep->GetTrack()->GetDynamicParticle()->GetDefinition()->GetParticleName()=="e-"){
+    // When no detector has been hit (eStop==-1), check for hit on silicon. When it happens, say the electron stopped 
+    if((fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName()=="Silicon1"||fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName()=="Silicon2") && UCNBAnalysisManager::getInstance()->eStop==-1) { UCNBAnalysisManager::getInstance()->eStop=1;}
+    // When a detector has been hit (eStop==1), check if the electron leaves the silicon. If so, say it did
+    if(!(fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName()=="Silicon1"||fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName()=="Silicon2") && UCNBAnalysisManager::getInstance()->eStop==1) { UCNBAnalysisManager::getInstance()->eStop=0;}
+    // When no detector has been hit (eStop==-1), record the energy at the start of the step.
+    if(!(fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName()=="Silicon1"||fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName()=="Dead1"||fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName()=="Silicon2"||fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName()=="Dead2") && UCNBAnalysisManager::getInstance()->eStop==-1) UCNBAnalysisManager::getInstance()->ePreSi=fStep->GetPreStepPoint()->GetKineticEnergy()/keV;
+    }
+  }
+
+  ////////////////////////////////////////
+  // Give PID value to each track.
+  if(UCNBAnalysisManager::getInstance()->PIDi[fStep->GetTrack()->GetTrackID()]==0) UCNBAnalysisManager::getInstance()->PIDi[fStep->GetTrack()->GetTrackID()]=fStep->GetTrack()->GetDynamicParticle()->GetDefinition()->GetPDGEncoding();
+  ////////////////////////////////////////////////////////
+  //  Daughter photon tracking
+      if(fStep->GetTrack()->GetTrackID()!=1){ 
+if(fStep->GetTrack()->GetDynamicParticle()->GetDefinition()->GetParticleName()=="gamma" && fStep->GetTrack()->GetTrackID()!=UCNBAnalysisManager::getInstance()->gammaID){  
+      UCNBAnalysisManager::getInstance()->gammaID=fStep->GetTrack()->GetTrackID();
+      UCNBAnalysisManager::getInstance()->numGamma++;
+
+      // If it's a gamma, record the initial state of the photon
+      G4ThreeVector photonStart = fStep->GetPreStepPoint()->GetPosition();
+      G4double xpho0 = photonStart.x()/m;
+      G4double ypho0 = photonStart.y()/m;
+      G4double zpho0 = photonStart.z()/m;
+      G4ThreeVector photonPStart = fStep->GetPreStepPoint()->GetMomentumDirection();
+      G4double pXpho0 = photonPStart.x();
+      G4double pYpho0 = photonPStart.y();
+      G4double pZpho0 = photonPStart.z();
+      UCNBAnalysisManager::getInstance()->recordBremPos(xpho0, ypho0, zpho0,pXpho0,pYpho0,pZpho0);
+  }
+}
+      /////////////////////////////////////////
+
+////////////////////////////////ELECTRON/////////////////////////////////////////////////////////
+//Separating  out the "hits" by comparing the timme of a given hit to the time of the last hit
+/////////////////////////////////////////////////////////////////////////////////////////////////
+//G4cout<<"ln 187 DeadLyer at :"<<zDeadLayer<<G4endl;
+if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon1" || fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon2"
+||fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead1" || fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead2" )
+  {
+    // G4int TotalNoHits = 0;
+	  //use same iterator:
+	if(fStep->GetTrack()->GetTrackID()==1){ 
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle33 = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle33 = dynParticle33 -> GetDefinition();
+    G4String particleName33 = particle33 -> GetParticleName();
+    //G4cout << "***NAME2*** " << particleName33 << G4endl;
+    
+    //------ Si #1  ------------------------------------------------------------------------------------                                                                                                                                    
+    if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon1" ) {    
+      if (UCNBAnalysisManager::getInstance()->dESi1HitTime[0]==0){
+        UCNBAnalysisManager::getInstance()->HitNo1 = 0;
+        UCNBAnalysisManager::getInstance()->Det1Hits = UCNBAnalysisManager::getInstance()->HitNo1 + 1;
+        UCNBAnalysisManager::getInstance()->dESi1HitTime[0] =fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond;
+      }
+      else if ((fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond) - (UCNBAnalysisManager::getInstance()->dESi1HitTime[UCNBAnalysisManager::getInstance()->HitNo1]) > 10.){//need to hve anther hit statement because in the next nteraction it is coming to the following else if statement. Hence need to have 
+        UCNBAnalysisManager::getInstance()->HitNo1++;
+        UCNBAnalysisManager::getInstance()->Det1Hits = UCNBAnalysisManager::getInstance()->HitNo1 + 1;
+        UCNBAnalysisManager::getInstance()->dESi1HitTime[UCNBAnalysisManager::getInstance()->HitNo1]=fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond;
+      }  
+      G4ThreeVector hitDetector1 = fStep->GetPreStepPoint()->GetPosition();
+      G4double zHitDetector1 = hitDetector1.z(); // all of these z's are in mm and not in m 
+    //  G4cout<<"ln 214 position of detector  :"<<zDecayTrap/m<<G4endl;
+    //  G4cout<< "ln 215 : hitting at z = "<<zHitDetector1<<G4endl;
+    //  G4cout<<"ln 216 dead layer  :"<<zDeadLayer<<G4endl;
+
+      if(zHitDetector1 > zDeadLayer){  
+        G4cout<<"ln 219 more than dead layer :"<<zHitDetector1<<G4endl;  
+        UCNBAnalysisManager::getInstance()->dESi1Hit[UCNBAnalysisManager::getInstance()->HitNo1]+=fStep->GetTotalEnergyDeposit()/keV;
+      }
+      else{
+        G4cout<<"hitting in dead layer :"<<zHitDetector1<<G4endl;
+        UCNBAnalysisManager::getInstance()->dEDead1Hit[UCNBAnalysisManager::getInstance()->HitNo1]+=fStep->GetTotalEnergyDeposit()/keV;
+      }
+      
+   }
+   G4cout<<"Energy dep detector 1     :"<<dESi1Hit[UCNBAnalysisManager::gertInstance()->HitNo1]<<G4endl;
+   G4cout<<"Energy dep fake deadlayer :"<<dEDead1Hit[UCNBAnalysisManager::gertInstance()->HitNo1]<<G4endl;
+//----Si#2--------------------------------------------------------------------
+  if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon2") {
+    if (UCNBAnalysisManager::getInstance()->dESi2HitTime[0]==0){
+      UCNBAnalysisManager::getInstance()->HitNo2 = 0;
+      UCNBAnalysisManager::getInstance()->Det2Hits = UCNBAnalysisManager::getInstance()->HitNo2 + 1;
+      UCNBAnalysisManager::getInstance()->dESi2HitTime[0] =fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond;
+     }
+    else if ((fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond) - (UCNBAnalysisManager::getInstance()->dESi2HitTime[UCNBAnalysisManager::getInstance()->HitNo2]) > 10.){//need to hve anther hit statement because in the next nteraction it is coming to the following else if statement. Hence need to have 
+      UCNBAnalysisManager::getInstance()->HitNo2++;
+      UCNBAnalysisManager::getInstance()->Det2Hits = UCNBAnalysisManager::getInstance()->HitNo2 + 1;
+      UCNBAnalysisManager::getInstance()->dESi2HitTime[UCNBAnalysisManager::getInstance()->HitNo2]=fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond;
+     } 
+     UCNBAnalysisManager::getInstance()->dESi2Hit[UCNBAnalysisManager::getInstance()->HitNo2]+=fStep->GetTotalEnergyDeposit()/keV;
+   
+  }
+   UCNBAnalysisManager::getInstance()->TotalNoHits =  UCNBAnalysisManager::getInstance()->Det2Hits+ UCNBAnalysisManager::getInstance()->Det1Hits ;
+/*
+
+// Dead #1                                                                                                                                     
+   if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead1" ) {                                                                          
+     if(UCNBAnalysisManager::getInstance()->dEDead1HitTime[0]==0)
+     UCNBAnalysisManager::getInstance()->dEDead1HitTime[UCNBAnalysisManager::getInstance()->HitNo1d]=fStep->
+     GetPreStepPoint()->GetGlobalTime()/nanosecond;
+     if(fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond>2.0+UCNBAnalysisManager::getInstance()->
+     dESi1HitTime[UCNBAnalysisManager::getInstance()->HitNo1d]){
+     UCNBAnalysisManager::getInstance()->HitNo1d++;
+    // UCNBAnalysisManager::getInstance()->HitNo++;
+     UCNBAnalysisManager::getInstance()->dEDead1HitTime[UCNBAnalysisManager::getInstance()->HitNo1d]=fStep->
+     GetPreStepPoint()->GetGlobalTime()/nanosecond;
+         }
+     UCNBAnalysisManager::getInstance()->dEDead1Hit[UCNBAnalysisManager::getInstance()->HitNo1d]+=fStep->GetTotalEnergyDeposit()/keV;
+}
+//-------------------Dead #2-----------------------------------------------------------------------------------------
+     if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead2") {
+     if(UCNBAnalysisManager::getInstance()->dEDead2HitTime[0]==0) UCNBAnalysisManager::getInstance()->dEDead2HitTime[UCNBAnalysisManager::getInstance()->HitNo2d]=fStep->
+     GetPreStepPoint()->GetGlobalTime()/nanosecond;
+     if(fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond>2.+UCNBAnalysisManager::getInstance()->dEDead2HitTime[UCNBAnalysisManager::getInstance()->HitNo2d]){
+     UCNBAnalysisManager::getInstance()->HitNo2d++;
+    // UCNBAnalysisManager::getInstance()->HitNo++;
+     UCNBAnalysisManager::getInstance()->dEDead2HitTime[UCNBAnalysisManager::getInstance()->HitNo2d]=fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond;
+         }
+     UCNBAnalysisManager::getInstance()->dEDead2Hit[UCNBAnalysisManager::getInstance()->HitNo2d]+=fStep->GetTotalEnergyDeposit()/keV;
+}*/
+}
+
+}
+  //////////////////////////////////PROTON//////////////////////////////////////////////////////////
+//Separating  out the "hits" by comparing the time of a given hit to the time of the last hit
+/////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+ if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead1" || fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead2" 
+ ||fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon1" || fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon2")
+  {
+	if(fStep->GetTrack()->GetTrackID()==2){ 
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle3 = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle3 = dynParticle3 -> GetDefinition();
+    G4String particleName3 = particle3 -> GetParticleName();
+    //G4cout << "***NAME2*** " << particleName3 << G4endl;
+
+// Dead #1                                                                                                                                     
+     if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead1" ) {                                                                          
+     if(UCNBAnalysisManager::getInstance()->dEDead1HitTimeP[0]==0)
+     UCNBAnalysisManager::getInstance()->dEDead1HitTimeP[UCNBAnalysisManager::getInstance()->HitNo11]=fStep->
+     GetPreStepPoint()->GetGlobalTime()/nanosecond;
+     if(fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond>2.0+UCNBAnalysisManager::getInstance()->
+     dEDead1HitTimeP[UCNBAnalysisManager::getInstance()->HitNo11]){
+     UCNBAnalysisManager::getInstance()->HitNo11++;
+     //UCNBAnalysisManager::getInstance()->HitNo++;
+     UCNBAnalysisManager::getInstance()->dEDead1HitTimeP[UCNBAnalysisManager::getInstance()->HitNo11]=fStep->
+     GetPreStepPoint()->GetGlobalTime()/nanosecond;
+         }
+     UCNBAnalysisManager::getInstance()->dEDead1HitP[UCNBAnalysisManager::getInstance()->HitNo11]+=fStep->GetTotalEnergyDeposit()/keV;
+}
+//-------------------Dead #2----------------------------------------------------------------------
+     if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead2") {
+     if(UCNBAnalysisManager::getInstance()->dEDead2HitTimeP[0]==0) UCNBAnalysisManager::getInstance()->dEDead2HitTimeP[UCNBAnalysisManager::getInstance()->HitNo22]=fStep->
+     GetPreStepPoint()->GetGlobalTime()/nanosecond;
+     if(fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond>2.+UCNBAnalysisManager::getInstance()->dEDead2HitTimeP[UCNBAnalysisManager::getInstance()->HitNo22]){
+     UCNBAnalysisManager::getInstance()->HitNo22++;
+    // UCNBAnalysisManager::getInstance()->HitNo++;
+     UCNBAnalysisManager::getInstance()->dEDead2HitTimeP[UCNBAnalysisManager::getInstance()->HitNo22]=fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond;
+         }
+     UCNBAnalysisManager::getInstance()->dEDead2HitP[UCNBAnalysisManager::getInstance()->HitNo22]+=fStep->GetTotalEnergyDeposit()/keV;
+}
+
+ //------ Si #1  ------------------------------------------------------------------------------------                                                                                                                                    
+    if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon1" ) {                                                                          
+      if(UCNBAnalysisManager::getInstance()->dESi1HitTimeP[0]==0)
+        UCNBAnalysisManager::getInstance()->dESi1HitTimeP[UCNBAnalysisManager::getInstance()->HitNo1s]=fStep->
+        GetPreStepPoint()->GetGlobalTime()/nanosecond;
+      if(fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond>2.0+UCNBAnalysisManager::getInstance()->
+      dESi1HitTimeP[UCNBAnalysisManager::getInstance()->HitNo1s]){
+        UCNBAnalysisManager::getInstance()->HitNo1s++;
+        UCNBAnalysisManager::getInstance()->HitNo++;
+        UCNBAnalysisManager::getInstance()->dESi1HitTimeP[UCNBAnalysisManager::getInstance()->HitNo1s]=fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond;
+      }
+      UCNBAnalysisManager::getInstance()->dESi1HitP[UCNBAnalysisManager::getInstance()->HitNo1s]+=fStep->GetTotalEnergyDeposit()/keV;
+    
+}
+//----Si#2--------------------------------------------------------------------------------------------
+     if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon2") {
+     if(UCNBAnalysisManager::getInstance()->dESi2HitTimeP[0]==0) UCNBAnalysisManager::getInstance()->dESi2HitTimeP[UCNBAnalysisManager::getInstance()->HitNo2s]=fStep->
+     GetPreStepPoint()->GetGlobalTime()/nanosecond;
+     if(fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond>2.+UCNBAnalysisManager::getInstance()->dESi2HitTimeP[UCNBAnalysisManager::getInstance()->HitNo2s]){
+     UCNBAnalysisManager::getInstance()->HitNo2s++;
+    // UCNBAnalysisManager::getInstance()->HitNo++;
+     UCNBAnalysisManager::getInstance()->dESi2HitTimeP[UCNBAnalysisManager::getInstance()->HitNo2s]=fStep->GetPreStepPoint()->GetGlobalTime()/nanosecond;
+         }
+     UCNBAnalysisManager::getInstance()->dESi2HitP[UCNBAnalysisManager::getInstance()->HitNo2s]+=fStep->GetTotalEnergyDeposit()/keV;
+}
+
+
+
+}
+} 
+*/
+      ////////////////////////////////////////
+
+
+//--------------Energy deposition in Silicon detectors and deadlayers-----------------------------------------
+
+  // Add up energy deposition in Silicon Detector #1
+  if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon1")
+  {
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle1 = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle = dynParticle1 -> GetDefinition();
+    G4String particleName = particle -> GetParticleName();
+
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      G4double timeHit1 = track->GetGlobalTime();
+      G4double test = UCNBAnalysisManager::getInstance()->globalTimeHit1;
+      if (dEstep/keV > 0. && timeHit1/s > test) { //it seems here that getting the global time since the track is created. and (once done with the event 7 deeper anaysis check what the global timehit1 is . is it initialised at some point because it is just been set equal to somwthign)
+      	UCNBAnalysisManager::getInstance()->globalTimeHit1 = timeHit1/s;
+       // G4cout<<" Time hit det 1 ============================"<<timeHit1/s<<G4endl;
+      }
+    }
+
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ){
+    G4Track* track1 = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle = track1 -> GetDynamicParticle();
+    G4ParticleDefinition* particle1 = dynParticle -> GetDefinition();
+    G4String particleName1 = particle1 -> GetParticleName();
+
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      UCNBAnalysisManager::getInstance()->AddUpElectronSilicon1EnergyDeposition(dEstep/keV);
+
+      G4double timeHit1 = track1->GetGlobalTime();
+      timeHit1 = timeHit1/s * 1.0e9;
+      G4int timeInt = (G4int) timeHit1;
+      if (timeInt > 499.) timeInt = 499;
+      UCNBAnalysisManager::getInstance()->EdepTimeBin1[timeInt] += dEstep/keV;
+    }
+
+    if ( ((fStep->GetTrack()->GetTrackID() == 2)) || ((fStep->GetTrack()->GetParentID() == 2)) ){
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      UCNBAnalysisManager::getInstance()->AddUpProtonSilicon1EnergyDeposition(dEstep/keV);
+      G4double timeHit1P = track->GetGlobalTime();
+      G4double test = UCNBAnalysisManager::getInstance()->globalTimeHit1P;
+      if (dEstep/keV > 0. && timeHit1P/s > test) {
+     UCNBAnalysisManager::getInstance()->globalTimeHit1P = timeHit1P/s;
+
+     G4double timeHit1p1 = track->GetGlobalTime();
+      timeHit1p1 = timeHit1p1/s * 1.0e9;
+      G4int timeInt = (G4int) timeHit1p1;
+      if (timeInt > 499.) timeInt = 499;
+      UCNBAnalysisManager::getInstance()->EdepTimeBin1P[timeInt] += dEstep/keV;
+    }
+  }
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+  // Add up energy deposition in Silicon Detector #2
+/////////////////////////////////////////////////////////////////////////
+  if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Silicon2")
+  {
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle = dynParticle -> GetDefinition();
+    G4String particleName = particle -> GetParticleName();
+
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      G4double test = UCNBAnalysisManager::getInstance()->globalTimeHit2;
+      G4double timeHit2 = track->GetGlobalTime();
+      if (dEstep/keV > 0. && timeHit2/s > test) {
+	UCNBAnalysisManager::getInstance()->globalTimeHit2 = timeHit2/s;
+      }
+    }
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      UCNBAnalysisManager::getInstance()->AddUpElectronSilicon2EnergyDeposition(dEstep/keV);
+      G4double timeHit2 = track->GetGlobalTime();
+      timeHit2 = timeHit2/s * 1.0e9;
+      G4int timeInt = (G4int) timeHit2;
+      if (timeInt > 499.) timeInt = 499;
+      UCNBAnalysisManager::getInstance()->EdepTimeBin2[timeInt] += dEstep/keV;
+    }
+
+    if ( ((fStep->GetTrack()->GetTrackID() == 2)) || ((fStep->GetTrack()->GetParentID() == 2)) ) {
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      UCNBAnalysisManager::getInstance()->AddUpProtonSilicon2EnergyDeposition(dEstep/keV);
+      G4double timeHit2P = track->GetGlobalTime();
+      G4double test = UCNBAnalysisManager::getInstance()->globalTimeHit2P;
+      if (dEstep/keV > 0. && timeHit2P/s > test) {
+     UCNBAnalysisManager::getInstance()->globalTimeHit2P = timeHit2P/s;
+
+     G4double timeHit2p2 = track->GetGlobalTime();
+      timeHit2p2 = timeHit2p2/s * 1.0e9;
+      G4int timeInt = (G4int) timeHit2p2;
+      if (timeInt > 499.) timeInt = 499;
+      UCNBAnalysisManager::getInstance()->EdepTimeBin2P[timeInt] += dEstep/keV;
+    }
+  }
+}
+
+
+  // Add up energy deposition in the Dead Layer for Silicon Detector #1
+  if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead1")
+  {
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle = dynParticle -> GetDefinition();
+    G4String particleName = particle -> GetParticleName();
+
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      G4double test = UCNBAnalysisManager::getInstance()->globalTimeDead1;
+      G4double timeDead1 = track->GetGlobalTime();
+      if (dEstep/keV > 0. && timeDead1/s>test ) {
+	UCNBAnalysisManager::getInstance()->globalTimeDead1 = timeDead1/s;
+      }
+    }
+
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      UCNBAnalysisManager::getInstance()->AddUpElectronDeadLayer1EnergyDeposition(dEstep/keV);
+      G4double timeDead1 = track->GetGlobalTime();
+      timeDead1 = timeDead1/s * 1.0e9;
+      G4int timeInt = (G4int) timeDead1;
+      if (timeInt > 499.) timeInt = 499;
+      UCNBAnalysisManager::getInstance()->EdepDeadTimeBin1[timeInt] += dEstep/keV;
+    }
+
+    if ( ((fStep->GetTrack()->GetTrackID() == 2)) || ((fStep->GetTrack()->GetParentID() == 2)) ){
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      UCNBAnalysisManager::getInstance()->AddUpProtonDeadLayer1EnergyDeposition(dEstep/keV);
+
+      G4double test = UCNBAnalysisManager::getInstance()->globalTimeDead1P;
+      G4double timeDead1P = track->GetGlobalTime();
+      if (dEstep/keV > 0. && timeDead1P/s>test ) {
+    UCNBAnalysisManager::getInstance()->globalTimeDead1P = timeDead1P/s;
+
+     G4double timeDead1P1 = track->GetGlobalTime();
+      timeDead1P1 = timeDead1P1/s * 1.0e9;
+      G4int timeInt = (G4int) timeDead1P1;
+      if (timeInt > 499.) timeInt = 499;
+      UCNBAnalysisManager::getInstance()->EdepDeadTimeBin1P[timeInt] += dEstep/keV;
+    }
+   }
+  }
+
+  // Add up energy deposition in the Dead Layer for Silicon Detector #2
+  if (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() == "Dead2")
+  {
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle = dynParticle -> GetDefinition();
+    G4String particleName = particle -> GetParticleName();
+
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      G4double test = UCNBAnalysisManager::getInstance()->globalTimeDead2;
+      G4double timeDead2 = track->GetGlobalTime();
+      if (dEstep/keV > 0. && timeDead2/s > test) {
+	UCNBAnalysisManager::getInstance()->globalTimeDead2 = timeDead2/s;
+      }
+    }
+
+    if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) ) {
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      UCNBAnalysisManager::getInstance()->AddUpElectronDeadLayer2EnergyDeposition(dEstep/keV);
+      G4double timeDead2 = track->GetGlobalTime();
+      timeDead2 = timeDead2/s * 1.0e9;
+      G4int timeInt = (G4int) timeDead2;
+      if (timeInt > 499.) timeInt = 499;
+      UCNBAnalysisManager::getInstance()->EdepDeadTimeBin2[timeInt] += dEstep/keV;
+    }
+
+    if ( ((fStep->GetTrack()->GetTrackID() == 2)) || ((fStep->GetTrack()->GetParentID() == 2)) ) {
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      UCNBAnalysisManager::getInstance()->AddUpProtonDeadLayer2EnergyDeposition(dEstep/keV);
+      G4double test = UCNBAnalysisManager::getInstance()->globalTimeDead2P;
+      G4double timeDead2P = track->GetGlobalTime();
+      if (dEstep/keV > 0. && timeDead2P/s > test) {
+	UCNBAnalysisManager::getInstance()->globalTimeDead2P = timeDead2P/s;
+
+     G4double timeDead2P2 = track->GetGlobalTime();
+      timeDead2P2 = timeDead2P2/s * 1.0e9;
+      G4int timeInt = (G4int) timeDead2P2;
+      if (timeInt > 499.) timeInt = 499;
+      UCNBAnalysisManager::getInstance()->EdepDeadTimeBin2P[timeInt] += dEstep/keV;
+      }
+    }
+  }
+
+///////////////////////////////////////////////
+
+  // Add up energy loss elsewhere (including to secondaries)
+  if ( (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() != "Silicon1") &&
+       (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() != "Silicon2") &&
+       (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() != "Dead1") &&
+       (fStep->GetPreStepPoint()->GetPhysicalVolume()->GetName() != "Dead2") )
+  {
+    G4Track* track = fStep -> GetTrack();
+    const G4DynamicParticle* dynParticle = track -> GetDynamicParticle();
+    G4ParticleDefinition* particle = dynParticle -> GetDefinition();
+    G4String particleName = particle -> GetParticleName();
+  //   if ( ((fStep->GetTrack()->GetTrackID() != 2)) && ((fStep->GetTrack()->GetParentID() != 2)) )
+    if ( ((fStep->GetTrack()->GetTrackID() == 1)) )
+    {
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      UCNBAnalysisManager::getInstance()->AddUpElectronOtherEnergyDeposition(dEstep/keV);
+    }
+     //if ( ((fStep->GetTrack()->GetTrackID() == 2)) || ((fStep->GetTrack()->GetParentID() == 2)) )
+  if ( ((fStep->GetTrack()->GetTrackID() == 2)) )
+    {
+      G4double dEstep = fStep->GetTotalEnergyDeposit();
+      UCNBAnalysisManager::getInstance()->AddUpProtonOtherEnergyDeposition(dEstep/keV);
+    }
+
+  }
+
+#endif
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

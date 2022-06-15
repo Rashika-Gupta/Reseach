@@ -1,0 +1,114 @@
+#include "UCNBPrimaryGeneratorAction.hh"
+#include "UCNBDetectorConstruction.hh"
+#include "UCNBAnalysisManager.hh"
+
+#include "TMath.h"
+#include "TFile.h"
+#include "TTree.h"
+#include "TChain.h"
+
+#include "G4String.hh"
+#include "G4Event.hh"
+#include "G4ParticleGun.hh"
+#include "G4ParticleTable.hh"
+#include "G4ParticleDefinition.hh"
+#include "globals.hh"
+#include "Randomize.hh"
+
+UCNBPrimaryGeneratorAction::UCNBPrimaryGeneratorAction(
+                                                       UCNBDetectorConstruction* myDC)
+:UCNBDetector(myDC)
+{
+}
+
+UCNBPrimaryGeneratorAction::~UCNBPrimaryGeneratorAction()
+{
+  delete particleGun;
+}
+
+void UCNBPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
+{
+
+  // Generate electron and proton
+  G4int n_particle = 1;
+  G4ParticleTable* particleTable = G4ParticleTable::GetParticleTable();
+
+  G4double pX;
+  G4double pY;
+  G4double pZ;
+  PID=11;
+
+  Double_t prob=G4UniformRand();
+  Int_t start;
+
+  if(prob<0.3) start=1;
+  else if(prob<0.6) start=30; 
+  else if(prob<0.8) start=60;
+  else start=100;
+
+  G4int dummy123;
+
+  for(Int_t xxm=start; xxm<256.*10.; xxm++){
+    dummy123=xxm;
+    if(UCNBAnalysisManager::getInstance()->betaCDF[xxm]>prob && UCNBAnalysisManager::getInstance()->betaCDF[xxm-1]<prob) break;
+  }
+  G4double xxmK=dummy123;
+  KE=xxmK/10.;
+
+  //G4cout << "PID " << PID << ", " << KE/keV << " keV at (" << pX << "," << pY << "," << pZ << "), event number " << UCNBAnalysisManager::getInstance()->evNo << " of " << EvtIn->GetEntries() << G4endl;
+
+  G4double testRad=10000*m;
+  G4double x_vertex, y_vertex;
+
+  while(testRad>1.5*mm){
+    x_vertex = 0.01*(G4UniformRand()*2-1)*m;
+    y_vertex = 0.01*(2*G4UniformRand()-1)*m;
+    testRad = sqrt(x_vertex*x_vertex+y_vertex*y_vertex);
+  }
+  G4double z_vertex = -0.0*m;
+
+    pX = 2*G4UniformRand()-1;
+    pY = 2*G4UniformRand()-1;
+    pZ = 2*G4UniformRand()-1;
+    testRad = pX*pX+pY*pY+pZ*pZ;
+
+	pX=sqrt(pX*pX/testRad);
+	pY=sqrt(pY*pY/testRad);
+	pZ=sqrt(pZ*pZ/testRad);
+
+
+  G4double Te0=0*keV;
+  G4double Tpho0=0*keV;
+
+  //G4cout << "Def. ptcl. gun" << G4endl;
+
+  particleGun = new G4ParticleGun(1);
+  G4ParticleDefinition* particle1;
+
+  if(PID==11){ 
+    particle1 = particleTable->FindParticle("e-");
+    Te0 = KE;
+  }
+  if(PID==22){
+    particle1 = particleTable->FindParticle("gamma");
+    Tpho0=KE;
+  }
+
+
+  particleGun->SetParticleDefinition(particle1);
+  particleGun->SetParticleEnergy(KE*keV);
+  particleGun->SetParticleMomentumDirection(G4ThreeVector(pX,pY,pZ));
+  particleGun->SetParticlePosition(G4ThreeVector(x_vertex,y_vertex,z_vertex));
+  particleGun->GeneratePrimaryVertex(anEvent);
+
+  // Save initial vertex variables
+  UCNBAnalysisManager::getInstance()->saveSourceVertex(Te0, Tpho0,
+    x_vertex/m, y_vertex/m, z_vertex/m, pX, pY, pZ, PID);
+
+  //G4cout << "***ANGLES***" << G4endl;
+  //G4cout << thetaProton << G4endl;
+  //G4cout << thetaElectron << G4endl;
+}
+
+
+

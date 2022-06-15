@@ -1,0 +1,4 @@
+/random/setSeeds 126 126
+/run/beamOn 200
+/run/particle/addProcManager Fe56[0.0]
+/run/particle/addProcManager Ar40[0.0]
